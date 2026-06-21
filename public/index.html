@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imposter Online</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Imposter</h1>
+
+  <!-- ===== START: Lobby erstellen oder beitreten ===== -->
+  <div id="screen-start" class="screen active">
+    <div class="card">
+      <label>Dein Name</label>
+      <input type="text" id="nameInput" placeholder="Wie heißt du?" maxlength="16">
+    </div>
+
+    <div class="card">
+      <button id="createLobbyBtn" class="primary">Neue Lobby erstellen</button>
+    </div>
+
+    <div class="card">
+      <label>Oder einer Lobby beitreten</label>
+      <input type="text" id="joinCodeInput" placeholder="4-stelliger Code" maxlength="4" style="text-transform:uppercase; letter-spacing:2px; font-size:18px; text-align:center;">
+      <button id="joinLobbyBtn" style="margin-top:8px;">Beitreten</button>
+    </div>
+
+    <p id="startError" class="error"></p>
+  </div>
+
+  <!-- ===== WARTERAUM: Spieler sind in der Lobby, warten auf Start ===== -->
+  <div id="screen-lobby" class="screen">
+    <div class="card center">
+      <p class="muted">Lobby-Code</p>
+      <p class="lobby-code" id="lobbyCodeDisplay">----</p>
+      <p class="muted small">Andere geben diesen Code unter "Beitreten" ein</p>
+    </div>
+
+    <div class="card">
+      <p class="muted" style="margin-bottom:8px;">Spieler (<span id="playerCountLabel">0</span>)</p>
+      <div id="playerList" class="player-list"></div>
+    </div>
+
+    <div id="hostSettings" class="card" style="display:none;">
+      <p class="muted" style="margin-bottom:8px;">Einstellungen</p>
+
+      <label class="small">Anzahl Imposter</label>
+      <div class="row">
+        <input type="range" min="1" max="4" value="1" step="1" id="imposterCount" style="flex:1;">
+        <span id="imposterCountOut" class="num">1</span>
+      </div>
+
+      <label class="small" style="margin-top:12px;">Kategorie</label>
+      <select id="category">
+        <option value="alle">Alle Kategorien</option>
+        <option value="essen">Essen & Trinken</option>
+        <option value="orte">Orte</option>
+        <option value="berufe">Berufe</option>
+        <option value="tiere">Tiere</option>
+        <option value="gegenstaende">Gegenstände</option>
+      </select>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="hintToggle">
+        <span>Imposter bekommen einen Tipp</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="votingToggle" checked>
+        <span>Abstimmung am Ende</span>
+      </label>
+
+      <button id="startRoundBtn" class="primary" style="margin-top:16px;">Spiel starten</button>
+      <p class="muted small" id="needMorePlayers" style="display:none;">Mindestens 3 Spieler nötig</p>
+    </div>
+
+    <div id="guestWaiting" class="card center" style="display:none;">
+      <p>Warte, bis der Host das Spiel startet…</p>
+    </div>
+  </div>
+
+  <!-- ===== REVEAL: Eigenes Wort / Imposter-Rolle sehen ===== -->
+  <div id="screen-reveal" class="screen">
+    <div class="card center" id="roleCardNormal" style="display:none;">
+      <p class="muted small" id="revealCategory">Kategorie</p>
+      <p class="big-word" id="revealWord">Wort</p>
+    </div>
+    <div class="card center" id="roleCardImposter" style="display:none;">
+      <p class="muted small" id="revealCategoryImp">Kategorie</p>
+      <p class="big-word">Du bist der Imposter</p>
+      <p class="muted small" id="revealHint">Finde heraus, was das Wort ist</p>
+    </div>
+    <p class="muted small center-text">Nur du siehst das auf deinem Gerät. Wenn alle so weit sind, kann es losgehen.</p>
+    <button id="toVotingBtn" class="primary">Bereit</button>
+    <p class="muted small center-text" id="waitingForOthers" style="display:none;">Warte auf die anderen…</p>
+  </div>
+
+  <!-- ===== VOTING ===== -->
+  <div id="screen-voting" class="screen">
+    <p class="muted center-text">Wer ist deiner Meinung nach der Imposter?</p>
+    <div id="voteOptions" class="vote-list"></div>
+    <p class="muted small center-text" id="voteProgress"></p>
+  </div>
+
+  <!-- ===== GUESS: Rausgewählter Imposter rät das Wort ===== -->
+  <div id="screen-guess" class="screen">
+    <div class="card center" id="guessCardSelf" style="display:none;">
+      <p class="muted small">Du wurdest rausgewählt — und warst Imposter</p>
+      <p style="margin:12px 0;">Letzte Chance: errate das Wort</p>
+      <input type="text" id="guessInput" placeholder="Deine Vermutung">
+      <button id="submitGuessBtn" class="primary" style="margin-top:10px;">Vermutung abgeben</button>
+    </div>
+    <div class="card center" id="guessCardOthers" style="display:none;">
+      <p id="guessWaitingText">wurde rausgewählt und war Imposter</p>
+      <p class="muted small">Diese Person bekommt eine letzte Chance, das Wort zu erraten…</p>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div id="screen-results" class="screen">
+    <div class="card center" id="guessOutcomeBox" style="display:none;">
+      <p style="font-weight:500;" id="guessOutcomeText">Richtig erraten</p>
+      <p class="muted small" id="guessOutcomeSub">Die Imposter gewinnen trotzdem</p>
+    </div>
+
+    <div class="card center">
+      <p class="muted small">Das Wort war</p>
+      <p class="big-word" id="resultWord">Wort</p>
+    </div>
+
+    <div class="card" id="voteResultsCard">
+      <p class="muted small" style="margin-bottom:8px;">Stimmen</p>
+      <div id="voteResultsList"></div>
+    </div>
+
+    <div class="card center">
+      <p class="muted small">Die Imposter waren</p>
+      <p style="font-weight:500;" id="resultImposters">Name</p>
+    </div>
+
+    <div id="hostResultActions" style="display:none;">
+      <button id="nextRoundBtn" class="primary">Noch eine Runde</button>
+      <button id="backToSettingsBtn" style="margin-top:8px;">Einstellungen ändern</button>
+    </div>
+    <p class="muted small center-text" id="guestResultWaiting" style="display:none;">Warte auf den Host für die nächste Runde…</p>
+  </div>
+
+  <p id="connError" class="error center-text" style="display:none;">Verbindung verloren. Seite neu laden, um wieder beizutreten.</p>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
