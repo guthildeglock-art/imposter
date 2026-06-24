@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imposter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ===== MODUS-AUSWAHL (allererster Bildschirm) ===== -->
+  <div id="screen-mode" class="screen active full-center">
+    <h1>Imposter</h1>
+    <p class="muted center-text" style="margin-bottom:24px;">Wie wollt ihr spielen?</p>
+    <button id="onlineModeBtn" class="primary mode-btn">
+      <span class="mode-icon">🌐</span>
+      <span class="mode-label">Online</span>
+      <span class="mode-sub">Jeder auf seinem eigenen Handy</span>
+    </button>
+    <button id="offlineModeBtn" class="mode-btn" style="margin-top:12px;">
+      <span class="mode-icon">📱</span>
+      <span class="mode-label">Offline</span>
+      <span class="mode-sub">Alle auf einem Gerät</span>
+    </button>
+  </div>
+
+  <!-- ===== ONLINE: Name + Lobby ===== -->
+  <div id="screen-start" class="screen">
+    <div class="topbar"><button id="backToModeBtn" class="back-btn">← Zurück</button><h2>Online spielen</h2></div>
+    <div class="card">
+      <label>Dein Name</label>
+      <input type="text" id="nameInput" placeholder="Wie heißt du?" maxlength="16">
+    </div>
+    <div class="card">
+      <button id="createLobbyBtn" class="primary">Neue Lobby erstellen</button>
+    </div>
+    <div class="card">
+      <label>Oder beitreten</label>
+      <input type="text" id="joinCodeInput" placeholder="4-stelliger Code" maxlength="4" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;text-align:center;">
+      <button id="joinLobbyBtn" style="margin-top:8px;">Beitreten</button>
+    </div>
+    <p id="startError" class="error"></p>
+  </div>
+
+  <!-- ===== ONLINE: WARTERAUM ===== -->
+  <div id="screen-lobby" class="screen with-chat">
+    <div class="game-area">
+      <div class="card center">
+        <p class="muted">Lobby-Code</p>
+        <p class="lobby-code" id="lobbyCodeDisplay">----</p>
+        <p class="muted small">Anderen diesen Code mitteilen</p>
+        <div id="qrCodeWrap" style="display:none;margin-top:12px;">
+          <div id="qrCode" style="display:inline-block;padding:10px;background:#fff;border-radius:8px;"></div>
+          <p class="muted small" style="margin-top:8px;">QR-Code scannen zum Beitreten</p>
+        </div>
+      </div>
+      <div class="card">
+        <p class="muted" style="margin-bottom:8px;">Spieler (<span id="playerCountLabel">0</span>)</p>
+        <div id="playerList" class="player-list"></div>
+      </div>
+      <div id="hostSettings" class="card" style="display:none;">
+        <p class="muted" style="margin-bottom:8px;">Einstellungen</p>
+        <label class="small">Anzahl Imposter</label>
+        <div class="row"><input type="range" min="1" max="4" value="1" step="1" id="imposterCount" style="flex:1;"><span id="imposterCountOut" class="num">1</span></div>
+        <label class="small" style="margin-top:12px;">Kategorie</label>
+        <select id="category">
+          <option value="alle">Alle Kategorien</option>
+          <option value="essen">Essen &amp; Trinken</option>
+          <option value="orte">Orte</option>
+          <option value="berufe">Berufe</option>
+          <option value="tiere">Tiere</option>
+          <option value="gegenstaende">Gegenstände</option>
+          <option value="sport">Sport</option>
+          <option value="filme">Filme</option>
+          <option value="natur">Natur</option>
+        </select>
+        <label class="checkbox-row"><input type="checkbox" id="hintToggle"><span>Imposter bekommen einen Tipp</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="votingToggle" checked><span>Abstimmung am Ende</span></label>
+        <button id="startRoundBtn" class="primary" style="margin-top:16px;">Spiel starten</button>
+        <p class="muted small" id="needMorePlayers" style="display:none;">Mindestens 3 Spieler nötig</p>
+      </div>
+      <div id="guestWaiting" class="card center" style="display:none;">
+        <p>Warte, bis der Host das Spiel startet…</p>
+      </div>
+
+      <div class="card" id="customWordsPanel">
+        <p class="muted" style="margin-bottom:8px;">Eigene Wörter <span class="muted small">(überschreibt Standard-Liste)</span></p>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input type="text" id="customWordInput" placeholder="Wort eingeben…" maxlength="50" style="flex:1;">
+          <button id="addCustomWordBtn" class="send-btn" style="width:48px;">+</button>
+        </div>
+        <div id="customWordsList" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <p class="muted small" style="margin-top:8px;" id="customWordsHint">Noch keine eigenen Wörter — Standard-Liste wird verwendet</p>
+      </div>
+    </div>
+    <div class="chat-panel" id="chatPanel">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtn" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: REVEAL ===== -->
+  <div id="screen-reveal" class="screen with-chat">
+    <div class="game-area">
+      <div class="card center" id="roleCardNormal" style="display:none;">
+        <p class="muted small" id="revealCategory">Kategorie</p>
+        <p class="big-word" id="revealWord">Wort</p>
+      </div>
+      <div class="card center" id="roleCardImposter" style="display:none;">
+        <p class="muted small" id="revealCategoryImp">Kategorie</p>
+        <p class="big-word">Du bist der Imposter</p>
+        <p class="muted small" id="revealHint">Finde heraus, was das Wort ist</p>
+      </div>
+      <p class="muted small center-text">Nur du siehst das. Wenn alle bereit sind, geht es weiter.</p>
+      <button id="toVotingBtn" class="primary">Bereit</button>
+      <p class="muted small center-text" id="waitingForOthers" style="display:none;"></p>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesReveal"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputReveal" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnReveal" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: DESCRIBE (Hinweis-Wort eintippen) ===== -->
+  <div id="screen-describe" class="screen with-chat">
+    <div class="game-area">
+      <div class="card center" id="describeMyTurn" style="display:none;">
+        <p class="muted small" id="describeTurnLabel">Du bist dran</p>
+        <p style="font-size:14px; margin:8px 0;">Gib ein Wort ein, das dein Wort beschreibt — aber nenn es nicht direkt!</p>
+        <input type="text" id="hintInput" placeholder="Dein Hinweis-Wort" maxlength="50" style="margin-bottom:10px;">
+        <button id="submitHintBtn" class="primary">Abschicken</button>
+      </div>
+      <div class="card center" id="describeWaiting" style="display:none;">
+        <p class="muted small">Gerade dran</p>
+        <p style="font-weight:500;" id="describeCurrentName">Spieler…</p>
+        <p class="muted small" style="margin-top:6px;">tippt gerade seinen Hinweis…</p>
+      </div>
+      <div class="card" id="describeSubmitted">
+        <p class="muted small" style="margin-bottom:8px;">Schon eingegeben</p>
+        <div id="describeSubmittedList"></div>
+      </div>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesDescribe"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputDescribe" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnDescribe" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: DESCRIBE-REVIEW (alle Hinweise anzeigen, Host entscheidet) ===== -->
+  <div id="screen-describe-review" class="screen with-chat">
+    <div class="game-area">
+      <div class="card">
+        <p class="muted small" style="margin-bottom:8px;">Alle Hinweise dieser Runde</p>
+        <div id="reviewHintsList"></div>
+      </div>
+      <div id="reviewHostActions" style="display:none;">
+        <button id="reviewVoteBtn" class="primary">Zur Abstimmung</button>
+        <button id="reviewDescribeAgainBtn" style="margin-top:8px;">Noch eine Runde Hinweise</button>
+      </div>
+      <p class="muted small center-text" id="reviewGuestWaiting" style="display:none;">Warte auf den Host…</p>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesReview"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputReview" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnReview" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: VOTING ===== -->
+  <div id="screen-voting" class="screen with-chat">
+    <div class="game-area">
+      <p class="muted center-text">Wer ist deiner Meinung nach der Imposter?</p>
+      <div id="voteOptions" class="vote-list"></div>
+      <p class="muted small center-text" id="voteProgress"></p>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesVoting"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputVoting" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnVoting" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: GUESS ===== -->
+  <div id="screen-guess" class="screen with-chat">
+    <div class="game-area">
+      <div class="card center" id="guessCardSelf" style="display:none;">
+        <p class="muted small">Du wurdest rausgewählt — und warst Imposter</p>
+        <p style="margin:12px 0;">Letzte Chance: Errate das Wort!</p>
+        <input type="text" id="guessInput" placeholder="Deine Vermutung">
+        <button id="submitGuessBtn" class="primary" style="margin-top:10px;">Vermutung abgeben</button>
+      </div>
+      <div class="card center" id="guessCardOthers" style="display:none;">
+        <p id="guessWaitingText">wartet auf die letzte Chance…</p>
+        <p class="muted small">Diese Person darf jetzt das Wort erraten</p>
+      </div>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesGuess"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputGuess" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnGuess" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONLINE: RESULTS ===== -->
+  <div id="screen-results" class="screen with-chat">
+    <div class="game-area">
+      <div class="card center" id="guessOutcomeBox" style="display:none;">
+        <p style="font-weight:500;" id="guessOutcomeText"></p>
+        <p class="muted small" id="guessOutcomeSub"></p>
+      </div>
+      <div class="card center">
+        <p class="muted small">Das Wort war</p>
+        <p class="big-word" id="resultWord"></p>
+      </div>
+      <div class="card" id="voteResultsCard">
+        <p class="muted small" style="margin-bottom:8px;">Stimmen</p>
+        <div id="voteResultsList"></div>
+      </div>
+      <div class="card center">
+        <p class="muted small">Die Imposter waren</p>
+        <p style="font-weight:500;" id="resultImposters"></p>
+      </div>
+      <div id="hostResultActions" style="display:none;">
+        <button id="nextRoundBtn" class="primary">Noch eine Runde</button>
+        <button id="backToSettingsBtn" style="margin-top:8px;">Einstellungen ändern</button>
+      </div>
+      <p class="muted small center-text" id="guestResultWaiting" style="display:none;">Warte auf den Host…</p>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-messages" id="chatMessagesResults"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputResults" placeholder="Nachricht…" maxlength="200">
+        <button id="chatSendBtnResults" class="send-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OFFLINE-MODUS (komplettes eigenständiges Spiel) ===== -->
+  <div id="screen-offline" class="screen"></div>
+
+  <p id="connError" class="error center-text" style="display:none;padding:12px;">Verbindung verloren. Seite neu laden.</p>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="offline.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
